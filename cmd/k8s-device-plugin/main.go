@@ -18,9 +18,9 @@ import (
 	"flag"
 	"fmt"
 	"github.com/aarnaud/k8s-directx-device-plugin/pkg/gpu-detection"
-	"github.com/golang/glog"
-	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
-	dm "k8s.io/kubernetes/pkg/kubelet/cm/devicemanager"
+	"k8s.io/klog"
+	pluginapi "k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
+	dm "github.com/aarnaud/k8s-directx-device-plugin/pkg/kubelet/cm/devicemanager"
 	"os"
 	"path"
 	"time"
@@ -87,7 +87,7 @@ func main() {
 
 	for _, gpuInfo := range gpus{
 		if !gpuInfo.MatchName(gpuMatchName) {
-			glog.Warningf("'%s' doesn't match  '%s', ignoring this gpu", gpuInfo.Name, gpuMatchName)
+			klog.Warningf("'%s' doesn't match  '%s', ignoring this gpu", gpuInfo.Name, gpuMatchName)
 			continue
 		}
 
@@ -95,19 +95,20 @@ func main() {
 			ID: gpuInfo.PNPDeviceID,
 			Health: getGPUHealth(&gpuInfo),
 		})
-		glog.Infof("GPU %s id: %s", gpuInfo.Name, gpuInfo.PNPDeviceID)
+		klog.Infof("GPU %s id: %s", gpuInfo.Name, gpuInfo.PNPDeviceID)
 	}
 
-	glog.Infof("pluginSocksDir: %s", pluginSocksDir)
+	klog.Infof("pluginSocksDir: %s", pluginSocksDir)
 	socketPath := path.Join(pluginSocksDir, "directx.sock")
-	glog.Infof("socketPath: %s", socketPath)
-	dp1 := dm.NewDevicePluginStub(devs, socketPath, resourceName, false)
+	klog.Infof("socketPath: %s", socketPath)
+	dp1 := dm.NewDevicePluginStub(devs, socketPath, resourceName, false, false)
 	if err := dp1.Start(); err != nil {
 		panic(err)
 
 	}
 
 	dp1.SetAllocFunc(allocFunc)
+	klog.Infof("Custom Version: <customVersion>")
 
 	// todo: when kubelet will success to autodetect socket, change the pluginSockDir to detect DEPRECATION file
 	if err := dp1.Register(pluginapi.KubeletSocket, resourceName, ""); err != nil {
